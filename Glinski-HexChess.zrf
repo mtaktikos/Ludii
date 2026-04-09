@@ -1,0 +1,228 @@
+; *** Hexagonal Chess:  Hexagonal Chess by W. Glinski
+; *** Zillions Rules by J. Mark Thompson; modified from
+;              Ivan A Derzhanski's ZRF for Shafran's Hexagonal Chess
+
+; You need to purchase Zillions of Games to load this rules file
+; Visit the Zillions web site at http://www.zillions-of-games.com
+
+(define leap2        ($1 $2 (verify not-friend?) add) )
+(define king-shift   ($1    (verify not-friend?) (set-attribute never-moved? false) add) )
+
+(define slide        ($1 (while empty? add $1) (verify not-friend?) add))
+(define rook-slide (
+  $1
+  (while empty? (set-attribute never-moved? false) add $1)
+  (verify not-friend?)
+  (set-attribute never-moved? false)
+  add
+))
+
+
+(define Pawn-add
+   (if (in-zone? promotion-zone) (add Bishop Knight Rook Queen) else add)
+)
+(define Pawn-move
+   (  z0   (verify empty?)   (Pawn-add)
+      (verify (in-zone? fast-through))
+      z0   (verify empty?)   add
+   )
+)
+(define Pawn-capture
+   (
+      $1
+      (verify enemy?)
+      (Pawn-add)
+   )
+)
+(define En-Passant-1
+   (
+      $1   (verify enemy?)
+      (verify last-to?)
+      (verify (piece? Pawn))
+      capture   z0   to   z0
+      (verify (or last-from? (last-from? z0)))
+      add
+   )
+)
+(define En-Passant-2
+   (
+      $1   (verify enemy?)
+      (verify last-to?)
+      (verify (piece? Pawn))
+      capture   z0 z0   to   z0
+      (verify last-from?)
+      add
+   )
+)
+
+(define Board-Definitions
+  (image "Images\Glinski-HexChess\HexChess.bmp")
+  (grid
+     (start-rectangle 16 -123 56 -83)
+     (dimensions
+	 ("a/b/c/d/e/f/g/h/i/j/k" (45 27)) ; files
+	 ("11/10/9/8/7/6/5/4/3/2/1" (0 54)) ; ranks
+     )
+     (directions
+       (z0 0 -1) (z1 1 -2) (z2 1 -1) (z3 2 -1) (z4 1 0) (z5 1 1)
+       (z6 0 1) (z7 -1 2) (z8 -1 1) (z9 -2 1) (zx -1 0) (zy -1 -1)
+     )
+  )
+  (kill-positions
+     a7 a8 a9 a10 a11 b8 b9 b10 b11 c9 c10 c11 d10 d11 e11
+     g1 h1 h2 i1 i2 i3 j1 j2 j3 j4 k1 k2 k3 k4 k5)
+  (symmetry Black
+    (z0 z6)(z6 z0) (z1 z7)(z7 z1) (z2 z8)(z8 z2)
+    (z3 z9)(z9 z3) (zx z4)(z4 zx) (zy z5)(z5 zy)
+  )
+  (zone
+     (name promotion-zone) (players White)
+     (positions a6 b7 c8 d9 e10 f11 g11 h11 i11 j11 k11)
+  )
+  (zone
+     (name promotion-zone) (players Black)
+     (positions a1 b1 c1 d1 e1 f1 g2 h3 i4 j5 k6)
+  )
+  (zone
+     (name fast-through) (players White)
+     (positions b2 c3 d4 e5 f6 g6 h6 i6 j6)
+  )
+  (zone
+     (name fast-through) (players Black)
+     (positions b6 c6 d6 e6 f6 g7 h8 i9 j10)
+  )
+)
+
+(game
+   (title "Hexagonal Chess by Wladyslaw Glinski")
+   (description "Western chess
+    transferred to a hexagonal board, with well-considered changes for improving
+    play on this board.
+    See the page <http://www.chessvariants.com/hexagonal.dir/hexagonal.html> for more.")
+   (history "This version of hexagonal chess was invented in 1936 by Wladyslaw Glinski.
+    During his life Glinski successfully promoted the game, which attracted hundreds of
+    thousands of players in Eastern Europe; he also saw the creation of an International 
+    Hexagonal Chess Federation and several international tournaments.  He died in 1990,
+    and the English-speaking world has heard much less of this game since then; but
+    Hungary, Belarus, Ukraine, and Russia appear still to have many active players.
+    \\The notation used in this Zillions implementation is not Glinski's standard, which
+    does not fit conveniently into the ZRF language.  The cells on the Queenside half 
+    of the board and on the centerline are labelled correctly, but in the 'official' 
+    notation, the cell which here is called g2 should be g1; g3 should be g2; h3 should 
+    be h1; i4 should be i1; etc.  That is, in the Glinski notation each file bends at
+    the centerline at an angle of 120 degrees.")
+   (strategy "When you find out how to play this game well, please email Mark Thompson, 
+    markthom@flash.net.")
+   (players White Black)
+   (turn-order White Black)
+   (pass-turn false)
+   (board (Board-Definitions))
+
+   (board-setup
+      (White
+	 (Pawn b1 c2 d3 e4 f5 g5 h5 i5 j5)
+	 (Bishop f1 f2 f3)
+	 (Knight d1 h3) (Rook c1 i4)
+	 (Queen e1) (King g2)
+      )
+      (Black
+	 (Pawn b7 c7 d7 e7 f7 g8 h9 i10 j11)
+	 (Bishop f9 f10 f11)
+	 (Knight d9 h11) (Rook c8 i11)
+	 (Queen e10) (King g11)
+      )
+   )
+
+   (piece
+      (name Pawn)
+	  (help "Pawn: moves forward, captures diagonally,
+	   promotes on last hex of his file")
+      (description "Pawn\A Pawn moves straight ahead one hex
+       and captures forwards through the corners (on a hex of the same colour).
+       From his starting position a Pawn can move all the way to the centre,
+       but if he rushes past a hex that is attacked by an enemy Pawn,
+       he can still be captured en passant.
+       If a Pawn reaches the last hex of his file,
+       he promotes to a Bishop, Knight, Rook, or Queen.")
+      (image White "Images\Glinski-HexChess\WPawn.bmp" Black "Images\Glinski-HexChess\BPawn.bmp")
+      (moves
+	 (Pawn-capture zx) (Pawn-capture z2)
+	 (Pawn-move)
+	 (En-Passant-1 z2) (En-Passant-1 zx)
+	 (En-Passant-2 z4) (En-Passant-2 z8)
+      )
+   )
+
+   (piece
+      (name Bishop)
+	  (help "Bishop: slides any number of hexes through the corners")
+      (description "Bishop\A Bishop moves any distance along the lines
+       going through the corners of the hexes.
+       He is restricted to 1/3 of the board.")
+      (image White "Images\Glinski-HexChess\WBishop.bmp" Black "Images\Glinski-HexChess\BBishop.bmp")
+      (moves
+	 (slide z1) (slide z3) (slide z5)
+	 (slide z7) (slide z9) (slide zy)
+      )
+   )
+
+   (piece
+      (name Knight)
+	  (help "Knight: moves to the nearest hexes not accessible to the Queen")
+      (description "Knight\A Knight moves to any of the nearest 12 hexes
+       that do not lie on the lines controlled by the Queen.")
+      (image White "Images\Glinski-HexChess\WKnight.bmp" Black "Images\Glinski-HexChess\BKnight.bmp")
+      (moves
+	     (leap2 z0 zy) (leap2 z0 z1)
+	     (leap2 z2 z1) (leap2 z2 z3)
+	     (leap2 z4 z3) (leap2 z4 z5)
+	     (leap2 z6 z5) (leap2 z6 z7)
+	     (leap2 z8 z7) (leap2 z8 z9)
+	     (leap2 zx z9) (leap2 zx zy)
+      )
+   )
+
+   (piece
+      (name Rook)
+	  (help "Rook: slides any number of hexes through the sides")
+      (description "Rook\A Rook moves any distance along the lines
+       going through the sides of the hexes.")
+      (image White "Images\Glinski-HexChess\WRook.bmp" Black "Images\Glinski-HexChess\BRook.bmp")
+      (attribute never-moved? true)
+      (moves
+	 (rook-slide z0) (rook-slide z2) (rook-slide z4)
+	 (rook-slide z6) (rook-slide z8) (rook-slide zx)
+      )
+   )
+
+   (piece
+      (name Queen)
+	  (help "Queen: combines the moves of Rook and Bishop")
+      (description "Queen\A Queen moves any distance along the lines
+       going through the sides or corners of the hexes.")
+      (image White "Images\Glinski-HexChess\WQueen.bmp" Black "Images\Glinski-HexChess\BQueen.bmp")
+      (moves
+	 (slide z0) (slide z2) (slide z4)
+	 (slide z6) (slide z8) (slide zx)
+	 (slide z1) (slide z3) (slide z5)
+	 (slide z7) (slide z9) (slide zy)
+      )
+   )
+
+   (piece
+      (name King)
+	  (help "King: moves one hex through a side or corner to a safe position")
+      (description "King\A King can move to any of the nearest 12 hexes,
+          but never to one attacked by the enemy.")
+      (image White "Images\Glinski-HexChess\WKing.bmp" Black "Images\Glinski-HexChess\BKing.bmp")
+      (attribute never-moved? true)
+      (moves
+	 (king-shift z0) (king-shift z1) (king-shift z2)
+	 (king-shift z3) (king-shift z4) (king-shift z5)
+	 (king-shift z6) (king-shift z7) (king-shift z8)
+	 (king-shift z9) (king-shift zx) (king-shift zy)
+      )
+   )
+
+   (loss-condition (White Black) (checkmated King) )
+)
