@@ -32,12 +32,17 @@ import sys
 # ── coordinate helpers ────────────────────────────────────────────────────────
 
 def _file_num(letter: str) -> int:
-    """'a' → 1, 'b' → 2, …, 'k' → 11."""
-    return ord(letter.lower()) - ord('a') + 1
+    """'a' → 1, 'b' → 2, …, 'k' → 11.  Raises ValueError for other letters."""
+    n = ord(letter.lower()) - ord('a') + 1
+    if not (1 <= n <= 11):
+        raise ValueError(f"Invalid file letter '{letter}': must be a-k")
+    return n
 
 
 def _file_letter(num: int) -> str:
-    """1 → 'a', 2 → 'b', …, 11 → 'k'."""
+    """1 → 'a', 2 → 'b', …, 11 → 'k'.  Raises ValueError for other numbers."""
+    if not (1 <= num <= 11):
+        raise ValueError(f"Invalid file number {num}: must be 1-11")
     return chr(ord('a') + num - 1)
 
 
@@ -92,8 +97,8 @@ def ludii_to_zillions(lf: int, lr: int):
 
 # ── move parsing ──────────────────────────────────────────────────────────────
 
-# A square is one letter followed by 1-2 digits.
-_SQUARE_RE = re.compile(r'([a-kA-K])([1-9][0-9]?)')
+# A square is one letter (a-k) followed by a valid rank (1-11).
+_SQUARE_RE = re.compile(r'([a-kA-K])(1[01]|[1-9])')
 
 
 def _parse_move(move_str: str):
